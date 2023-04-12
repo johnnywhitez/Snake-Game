@@ -1,0 +1,160 @@
+import javafx.application.Application;
+import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.KeyCode;
+import javafx.scene.paint.Color;
+import javafx.stage.Stage;
+
+import java.util.ArrayList;
+import java.util.Random;
+
+public class App extends Application {
+
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 600;
+    private static final int SNAKE_SIZE = 20;
+    private static final int FOOD_SIZE = 20;
+
+    private static int snakeLength = 3;
+    private static boolean gameOver = false;
+
+    private static int snakeX = 0;
+    private static int snakeY = 0;
+    private static int foodX = 0;
+    private static int foodY = 0;
+    private static int snakeXVel = 0;
+    private static int snakeYVel = 0;
+
+    private static ArrayList<Integer> snakeXs = new ArrayList<>();
+    private static ArrayList<Integer> snakeYs = new ArrayList<>();
+
+    private static Random random = new Random();
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        primaryStage.setTitle("Snake Game");
+        primaryStage.setResizable(false);
+
+        Group root = new Group();
+        Scene scene = new Scene(root, WIDTH, HEIGHT, Color.BLACK);
+
+        Canvas canvas = new Canvas(WIDTH, HEIGHT);
+        root.getChildren().add(canvas);
+
+        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+
+        // initialize snake position
+        snakeX = WIDTH / 2;
+        snakeY = HEIGHT / 2;
+        snakeXs.add(snakeX);
+        snakeYs.add(snakeY);
+
+        // place food in a random location
+        placeFood();
+
+        // game loop
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.UP) {
+                snakeXVel = 0;
+                snakeYVel = -1;
+            } else if (event.getCode() == KeyCode.DOWN) {
+                snakeXVel = 0;
+                snakeYVel = 1;
+            } else if (event.getCode() == KeyCode.LEFT) {
+                snakeXVel = -1;
+                snakeYVel = 0;
+            } else if (event.getCode() == KeyCode.RIGHT) {
+                snakeXVel = 1;
+                snakeYVel = 0;
+            }
+        });
+
+        new javafx.animation.AnimationTimer() {
+            long lastUpdateTime = 0;
+
+            @Override
+            public void handle(long currentNanoTime) {
+                if (currentNanoTime - lastUpdateTime < 100000000) {
+                    return;
+                }
+
+                lastUpdateTime = currentNanoTime;
+
+                graphicsContext.setFill(Color.BLACK);
+                graphicsContext.fillRect(0, 0, WIDTH, HEIGHT);
+
+                // move the snake
+                snakeX += snakeXVel * SNAKE_SIZE;
+                snakeY += snakeYVel * SNAKE_SIZE;
+
+                // wrap around the screen
+                if (snakeX < 0) {
+                    snakeX = WIDTH - SNAKE_SIZE;
+                } else if (snakeX >= WIDTH) {
+                    snakeX = 0;
+                }
+
+                if (snakeY < 0) {
+                    snakeY = HEIGHT - SNAKE_SIZE;
+                } else if (snakeY >= HEIGHT) {
+                    snakeY = 0;
+                }
+
+                // check if the snake has collided with itself
+                for (int i = 1; i < snakeXs.size(); i++) {
+                    if (snakeX == snakeXs.get(i) && snakeY == snakeYs.get(i)) {
+                        gameOver = true;
+                        break;
+                    }
+                }
+    
+                // check if the snake has collided with the food
+                if (snakeX == foodX && snakeY == foodY) {
+                    snakeLength++;
+                    placeFood();
+                }
+    
+                // add the new snake head
+                snakeXs.add(0, snakeX);
+                snakeYs.add(0, snakeY);
+    
+                // remove the last snake segment if necessary
+                if (snakeXs.size() > snakeLength) {
+                    snakeXs.remove(snakeXs.size() - 1);
+                    snakeYs.remove(snakeYs.size() - 1);
+                }
+    
+                // draw the food
+                graphicsContext.setFill(Color.RED);
+                graphicsContext.fillRect(foodX, foodY, FOOD_SIZE, FOOD_SIZE);
+    
+                // draw the snake
+                graphicsContext.setFill(Color.GREEN);
+                for (int i = 0; i < snakeXs.size(); i++) {
+                    graphicsContext.fillRect(snakeXs.get(i), snakeYs.get(i), SNAKE_SIZE, SNAKE_SIZE);
+                }
+    
+                // draw game over message
+                if (gameOver) {
+                    graphicsContext.setFill(Color.WHITE);
+                    graphicsContext.fillText("Game Over", WIDTH / 2 - 30, HEIGHT / 2);
+                    stop();
+                }
+            }
+        }.start();
+    
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+    
+    private static void placeFood() {
+        foodX = random.nextInt(WIDTH - FOOD_SIZE);
+        foodY = random.nextInt(HEIGHT - FOOD_SIZE);
+    }
+    
+    public static void main(String[] args) {
+        launch(args);
+    }
+}    
